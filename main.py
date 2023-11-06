@@ -1,6 +1,7 @@
 import numpy as np
 import random
 import colored
+
 re = colored.attr('reset')
 na = colored.bg('0') + "  " + re    #The double space is actually really important
 a = colored.bg('1') + "  " + re     #it so happens that double spaces look a lot like squares
@@ -23,7 +24,6 @@ dic = [a,b,c,d,e,f,g,h,i,j,k,l,m,n,o]
 n = 8                               #Grid dimension
 chain_limit = n-4                   #Minimum line length
 iter = 800                          #Number of iterations
-
 
 def baseMatrix(dim):                #Generates the initial state of the grid with horizontal lines of length 'n'
     A = []                          
@@ -70,9 +70,41 @@ def edgeSwitch(A):                  #Most important code of this generator: this
                         continue                                        #If 'n1' is not greater than 0.5, we simply continue with another (second) line 
     return A
 
-      
+def flowPrinter(A):                 #An auxiliary function for printing the puzzle
+    C = []                          #We make an empty list...
+    for z in range(n):
+        C.append([na]*n)            #... and fill it with n' sublists of 'n' entries whose content is a black double space ('na' is black, according to our color definition)
+    for i in range(len(A)):
+        for j in range(len(A[i])):              
+            x = A[i][j][0][0] - 1               #We find the indices of each line element...
+            y = A[i][j][0][1] - 1               
+            C[x][y] = A[i][j][1]                #... and overwrite that element in 'C' with the appropriate color
+    s = ""
+    for k in range(n):                          #Finally, we print every line of  'C' as a single string.
+        for l in range(n):
+            s = s + C[k][l]
+        print(s)
+        s = ""
+def flowPrinter_puzzle(A):
+    C = []
+    for z in range(n):
+        C.append([na]*n)
+    for i in range(len(A)):
+        for j in range(-1,1):
+            x = A[i][j][0][0] - 1
+            y = A[i][j][0][1] - 1
+            C[x][y] = A[i][j][1]
+    s = ""
+    for k in range(n):
+        for l in range(n):
+            s = s + C[k][l]
+        print(s)
+        s = ""
+
 flow = baseMatrix(n)
 for step in range(0,iter):
     flow = edgeSwitch(flow)
     random.shuffle(flow)
-# print(flow)
+# flowPrinter(flow)
+print('\n \n')
+flowPrinter_puzzle(flow)

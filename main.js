@@ -1,183 +1,75 @@
-function create2DArray(x) {
-  let arr = new Array(x);
-  for (let i = 0; i < x; i++) {
-    arr[i] = new Array(x).fill(0);
+// Parameters
+const n = 6; // Grid dimension
+const chain_limit = n - 4; // Minimum line length
+const iter = 800; // Number of iterations
+
+// Generate the initial state of the grid
+function baseMatrix(dim) {
+  const A = [];
+  for (let i = 0; i < dim; i++) {
+    A[i] = [];
+    for (let j = 0; j < dim; j++) {
+      A[i].push({ position: [i, j], color: i }); // Store position and color
+    }
   }
-  return arr;
+  return A;
 }
 
-function getRandomPosition(x) {
-  return {
-    row: Math.floor(Math.random() * x),
-    col: Math.floor(Math.random() * x)
-  };
-}
-
-function placeNumberInRandomPosition(arr, x, num) {
-  let position = getRandomPosition(x);
-  while (arr[position.row][position.col] !== 0) {
-    position = getRandomPosition(x);
-  }
-  arr[position.row][position.col] = num;
-}
-
-function findPosition(arr, num) {
-  const positions = [];
-  for (let row = 0; row < arr.length; row++) {
-    for (let col = 0; col < arr[row].length; col++) {
-      if (arr[row][col] === num) {
-        positions.push({ row, col });
+// Extend/shrink two lines whose tails share an edge
+function edgeSwitch(A) {
+  let sw = false;
+  for (let i = 0; i < A.length; i++) {
+    if (sw) break;
+    for (let k1Index of [0, A[i].length - 1]) { // Use 0 for start, length - 1 for end
+      if (sw) break;
+      const p = A[i][k1Index].position;
+      for (let j = 0; j < A.length; j++) {
+        if (sw || j === i || A[j].length <= chain_limit) continue;
+        for (let k2Index of [0, A[j].length - 1]) { // Use 0 for start, length - 1 for end
+          if (sw) break;
+          const pprime = A[j][k2Index].position;
+          if (Math.abs(p[0] - pprime[0]) + Math.abs(p[1] - pprime[1]) === 1) {
+            const n1 = Math.random();
+            if (n1 > 0.5) {
+              A[j].splice(k2Index, 1); // Remove tail from second line
+              if (k1Index === 0) {
+                A[i].unshift({ position: pprime, color: A[i][0].color }); // Add to the start
+              } else {
+                A[i].push({ position: pprime, color: A[i][0].color }); // Add to the end
+              }
+              sw = true;
+            }
+          }
+        }
       }
     }
   }
-  return positions;
+  return A;
 }
 
-function canConnect(start, end, arr, num) {
-  const visited = arr.map(row => row.map(() => false));
-  const queue = [start];
-  const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
 
-  while (queue.length > 0) {
-    const { row, col } = queue.shift();
-    if (row === end.row && col === end.col) {
-      return true;
-    }
-
-    for (const [dr, dc] of directions) {
-      const newRow = row + dr;
-      const newCol = col + dc;
-
-      if (newRow >= 0 && newRow < arr.length && newCol >= 0 && newCol < arr[newRow].length &&
-        !visited[newRow][newCol] && (arr[newRow][newCol] === 0 || arr[newRow][newCol] === num)) {
-        visited[newRow][newCol] = true;
-        queue.push({ row: newRow, col: newCol });
-      }
+// Function to print the puzzle
+function printPuzzle(A) {
+  const C = Array.from({ length: n }, () => Array(n).fill(null));
+  for (let i = 0; i < A.length; i++) {
+    for (let j = 0; j < A[i].length; j++) {
+      const [x, y] = A[i][j].position;
+      C[x][y] = A[i][j].color;
     }
   }
-
-  return false;
+  console.log(C);
 }
 
-let twoDArray;
-let isConnected = false;
-while (!isConnected) {
-  twoDArray = create2DArray(5);
-
-  for (let value = 1; value <= 5; value++) {
-    placeNumberInRandomPosition(twoDArray, 5, value);
-    placeNumberInRandomPosition(twoDArray, 5, value);
-  }
-
-  isConnected = true;
-  for (let value = 1; value <= 5 && isConnected; value++) {
-    const [start, end] = findPosition(twoDArray, value);
-    if (!canConnect(start, end, twoDArray, value)) {
-      isConnected = false;
-    }
+// Initialize flow and perform iterations
+let flow = baseMatrix(n);
+for (let step = 0; step < iter; step++) {
+  flow = edgeSwitch(flow);
+  // Shuffle the lines in 'flow'
+  for (let i = flow.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [flow[i], flow[j]] = [flow[j], flow[i]];
   }
 }
 
-//!
-
-// function fillPathWithNumber(start, end, arr, num) {
-//   const visited = arr.map(row => row.map(() => false));
-//   const queue = [{ position: start, path: [] }];
-//   const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
-
-//   while (queue.length > 0) {
-//     const { position: { row, col }, path } = queue.shift();
-
-//     if (row === end.row && col === end.col) {
-//       for (const { row, col } of path) {
-//         arr[row][col] = num;
-//       }
-//       return true;
-//     }
-
-//     for (const [dr, dc] of directions) {
-//       const newRow = row + dr;
-//       const newCol = col + dc;
-
-//       if (newRow >= 0 && newRow < arr.length && newCol >= 0 && newCol < arr[newRow].length &&
-//         !visited[newRow][newCol] && (arr[newRow][newCol] === 0 || arr[newRow][newCol] === num)) {
-//         visited[newRow][newCol] = true;
-//         queue.push({ position: { row: newRow, col: newCol }, path: [...path, { row: newRow, col: newCol }] });
-//       }
-//     }
-//   }
-
-//   return false;
-// }
-
-// let copyTwoDArray = JSON.parse(JSON.stringify(twoDArray))
-
-// function checkPass(startValue = 1) {
-//   console.log(startValue)
-//   let isPass = true;
-//   for (let value = startValue; value <= startValue + 4; value++) {
-//     const index = value > 5 ? value - 5 : value;
-//     const [start, end] = findPosition(copyTwoDArray, index);
-//     if (!fillPathWithNumber(start, end, copyTwoDArray, index)) {
-//       isPass = false;
-//       break;
-//     }
-//   }
-
-//   if (!isPass && startValue < 5) {
-//     copyTwoDArray = JSON.parse(JSON.stringify(twoDArray));
-//     return checkPass(startValue + 1);
-//   }
-//   console.log(isPass, copyTwoDArray);
-// }
-
-// checkPass();
-
-function getAllPaths(start, end, arr, num) {
-  const visited = arr.map(row => row.map(() => false));
-  const paths = [];
-
-  function dfs(row, col, path) {
-    if (row === end.row && col === end.col) {
-      paths.push([...path, { row, col }]);
-      return;
-    }
-
-    const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
-    for (const [dr, dc] of directions) {
-      const newRow = row + dr;
-      const newCol = col + dc;
-
-      if (newRow >= 0 && newRow < arr.length && newCol >= 0 && newCol < arr[newRow].length &&
-        !visited[newRow][newCol] && (arr[newRow][newCol] === 0 || arr[newRow][newCol] === num)) {
-        visited[newRow][newCol] = true;
-        dfs(newRow, newCol, [...path, { row, col }]);
-        visited[newRow][newCol] = false;
-      }
-    }
-  }
-
-  dfs(start.row, start.col, []);
-  return paths;
-}
-
-function fillUsingLongestPath(twoDArray) {
-  for (let value = 1; value <= 5; value++) {
-    const [start, end] = findPosition(twoDArray, value);
-    const paths = getAllPaths(start, end, twoDArray, value);
-    let longestPath = [];
-    for (const path of paths) {
-      if (path.length > longestPath.length) {
-        longestPath = path;
-      }
-    }
-
-    for (const { row, col } of longestPath) {
-      twoDArray[row][col] = value;
-    }
-  }
-}
-
-fillUsingLongestPath(twoDArray);
-
-console.log(twoDArray);
+// Print the puzzle (replace this with return in a function)
+printPuzzle(flow);

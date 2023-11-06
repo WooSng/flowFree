@@ -1,5 +1,5 @@
 // Parameters
-const n = 6; // Grid dimension
+const n = 8; // Grid dimension
 const chain_limit = n - 4; // Minimum line length
 const iter = 800; // Number of iterations
 
